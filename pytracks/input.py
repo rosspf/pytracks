@@ -1,13 +1,6 @@
 import numpy
 import os
 import pytracks.tracks
-import pytracks.grid
-
-def read_data(data_file):
-    try:
-        return numpy.loadtxt(os.path.abspath(data_file))
-    except (IOError, FileNotFoundError):
-        raise
 
 
 # A method to section the data according to an ID specified
@@ -24,46 +17,47 @@ def split_data(data, split_id):
     return numpy.split(sorted_data, id_indexes)
 
 
+def get_data(data_file, sectioned, ids):
+    try:
+        raw_input = numpy.loadtxt(os.path.abspath(data_file))
+    except (IOError, FileNotFoundError):
+        raise
+    if sectioned:
+        return split_data(raw_input, 0), ids
+    else:
+        # Subtract 1 from each id to compensate for no section id
+        return [raw_input], [v - 1 for v in ids]
+
+
 class TrackWrapper:
-    def __init__(self, data_file, extra_ids=None, sectioned=True, id_column=1, x_column=2, y_column=3):
-        input = read_data(data_file)
+
+    def __init__(self, data_file, sectioned=True, id_column=1, x_column=2, y_column=3, g_column=4, m_column=5, worth_column=6, weight_column=7, extra_ids=None):
+        self.data, self.data_ids = get_data(data_file, sectioned, [id_column, x_column, y_column, g_column, m_column, worth_column, weight_column])
         self.extra_ids = extra_ids
-        if sectioned:
-            self.data_ids = [id_column, x_column, y_column]
-            self.data = split_data(input, 0)
-        else:
-            # Subtract 1 from each id to compensate for no section id
-            self.data_ids = [v - 1 for v in [id_column, x_column, y_column]]
-            self.data = [input]
 
     # Get trackset of id. If nothing passed get first
     def get_trackset(self, id=0):
         new_tracks = []
         for raw_track in split_data(self.data[id], self.data_ids[0]):
-            track = pytracks.tracks.Track(self.extra_ids)
-            for raw_tick in raw_track:
-                track.x = numpy.append(track.x, raw_tick[self.data_ids[1]])
-                track.y = numpy.append(track.y, raw_tick[self.data_ids[2]])
-                if self.extra_ids is not None:
-                    for current_extra_id in range(len(self.extra_ids)):
-                        numpy.append(track.extra[current_extra_id], raw_tick[self.extra_ids[current_extra_id]])
-            new_tracks.append(track)
+            new_track_data = []
+            new_track_data_extra = []
+            for element in self.data_ids:
+                new_track_data.append(raw_track[:, element])
+            if self.extra_ids is not None:
+                for element in self.extra_ids:
+                    new_track_data_extra.append(raw_track[:, element])
+            new_tracks.append(pytracks.tracks.Track(new_track_data, new_track_data_extra))
         return pytracks.tracks.TrackSet(new_tracks)
 
+
 class GridWrapper:
-    def __init__(self, data_file, extra_ids=None, sectioned=True, x_column=1, y_column=2):
-        input = read_data(data_file)
+
+    def __init__(self, data_file, sectioned=True, x_column=1, y_column=2, extra_ids=None):
+        self.data, self.data_ids = get_data(data_file, sectioned, [x_column, y_column])
         self.extra_ids = extra_ids
-        if sectioned:
-            self.data_ids = [x_column, y_column]
-            self.data = split_data(input, 0)
-        else:
-            # Subtract 1 from each id to compensate for no section id
-            self.data_ids = [v - 1 for v in [x_column, y_column]]
-            self.data = [input]
 
     def get_grid(self, id=0):
-        return self.data[id]
+        return self.data[0]
 
     def size(self, id=0):
         return self.data[id][-1][self.data_ids[0]], self.data[id][-1][self.data_ids[1]]
