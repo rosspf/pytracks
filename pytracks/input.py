@@ -7,70 +7,66 @@ except ImportError:
     print("Module: configparser not found.")
 
 
-def make_track_set(raw_set, x_id, y_id, x_move_id, y_move_id, extra_ids=None):
-    new_tracks = []
-    for raw_track in raw_set:
-        track = pytracks.tracks.Track(extra_ids)
-        track.origin = (raw_track[0][x_id] - raw_track[0][x_move_id], raw_track[0][y_id] - raw_track[0][y_move_id])
-        for raw_tick in raw_track:
-            track.x = numpy.append(track.x, raw_tick[x_id])
-            track.y = numpy.append(track.y, raw_tick[y_id])
-            if extra_ids is not None:
-                for current_extra_id in range(len(extra_ids)):
-                    numpy.append(track.extra[current_extra_id], raw_tick[extra_ids[current_extra_id]])
-        new_tracks.append(track)
-    return pytracks.tracks.TrackSet(new_tracks)
+def read_data(data_file):
+    try:
+        return numpy.loadtxt(os.path.abspath(data_file))
+    except (IOError, FileNotFoundError):
+        raise
 
 
-def get_grid_size(grid_set, x_id, y_id):
-    return grid_set[-1][x_id], grid_set[-1][y_id]
+# A method to section the data according to an ID specified
+def split_data(data, split_id):
+    # Sort the incoming data according to the specific column index. Mergesort used to keep original order.
+    sorted_data = data[data[:,split_id].argsort(kind="mergesort")]
 
+    # Get the column which we are interested in sorting to
+    ids = sorted_data[:,split_id]
 
-class DataWrapper:
+    # Find where each element is different from it's neighbor and add 1 to get the right splitting point
+    id_indexes = [j + 1 for j in numpy.where(ids[:-1] != ids[1:])[0]]
 
-    # The config file parser class
-    config = configparser.ConfigParser()
+    return numpy.split(sorted_data, id_indexes)
 
-    # The formatted data
-    data = None
-
-    raw_data = None
-
-    # Read and format everything in on class init
-    def __init__(self, config_file):
-        fixed_config_file = os.path.abspath(config_file)
-
-        # Read config file
-        try:
-            self.config.read(fixed_config_file)
-        except (IOError, FileNotFoundError):
-            print("Config file not found: ", fixed_config_file)
-
-        # Load the raw data from the file using numpy.loadtxt
-        self.raw_data = numpy.loadtxt(os.path.abspath(self.config.get("Main", "Source")))
-
-        # Start splitting the data into sets according to the SectionID config option. Split data again if needed.
-        if self.config.has_option("Main", "SectionID"):
-            sectioned_data = self.__split_data(self.raw_data, self.config.getint("Main", "SectionID"))
-            if self.config.has_option("Main", "SubSplitID"):
-                sections_builder = []
-                for section in sectioned_data:
-                    sections_builder.append(self.__split_data(section, self.config.getint("Main", "SubSplitID")))
-                self.data = sections_builder
-            else:
-                self.data = sectioned_data
+class TrackWrapper:
+    def __init__(self, data_file, extra_ids=None, sectioned=True, id_column=1, x_column=2, y_column=3):
+        input = read_data(data_file)
+        self.extra_ids = extra_ids
+        if sectioned:
+            self.data_ids = [id_column, x_column, y_column]
+            self.data = split_data(input, 0)
         else:
-            self.data = self.raw_data
+            # Subtract 1 from each id to compensate for no section id
+            self.data_ids = [v - 1 for v in [id_column, x_column, y_column]]
+            self.data = [input]
 
-    # An internal method to split data according to an ID specified
-    def __split_data(self, _data, id):
-            # Sort the incoming data according to the specific column index. Mergesort used to keep original order.
-            sorted_data = _data[_data[:,id].argsort(kind="mergesort")]
+    # Get trackset of id. If nothing passed get first
+    def get_trackset(self, id=0):
+        new_tracks = []
+        for raw_track in split_data(self.data[id], self.data_ids[0]):
+            track = pytracks.tracks.Track(self.extra_ids)
+            for raw_tick in raw_track:
+                track.x = numpy.append(track.x, raw_tick[self.data_ids[1]])
+                track.y = numpy.append(track.y, raw_tick[self.data_ids[2]])
+                if self.extra_ids is not None:
+                    for current_extra_id in range(len(self.extra_ids)):
+                        numpy.append(track.extra[current_extra_id], raw_tick[self.extra_ids[current_extra_id]])
+            new_tracks.append(track)
+        return pytracks.tracks.TrackSet(new_tracks)
 
-            # Get the column which we are interested in sorting to
-            ids = sorted_data[:,id]
+class GridWrapper:
+    def __init__(self, data_file, extra_ids=None, sectioned=True, x_column=1, y_column=2):
+        input = read_data(data_file)
+        self.extra_ids = extra_ids
+        if sectioned:
+            self.data_ids = [x_column, y_column]
+            self.data = split_data(input, 0)
+        else:
+            # Subtract 1 from each id to compensate for no section id
+            self.data_ids = [v - 1 for v in [x_column, y_column]]
+            self.data = [input]
 
-            # Find where each element is different from it's neighbor and add 1 to get the right splitting point
-            id_indexes = [j + 1 for j in numpy.where(ids[:-1] != ids[1:])[0]]
+    def get_grid(self, id=0):
+        return self.data[id]
 
-            return numpy.split(sorted_data, id_indexes)
+    def size(self, id=0):
+        return self.data[id][-1][self.data_ids[0]], self.data[id][-1][self.data_ids[1]]

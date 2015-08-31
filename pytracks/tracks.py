@@ -6,6 +6,8 @@ try:
     import configparser
 except ImportError:
     print("Module: configparser not found.")
+
+
 class TrackSet:
 
     tracks = None
@@ -71,7 +73,6 @@ class TrackSet:
 class Track:
     x = numpy.array([], dtype=float)
     y = numpy.array([], dtype=float)
-    origin = None
     extra = []
 
     def __init__(self, extra_ids):
@@ -82,12 +83,12 @@ class Track:
     # Make the first code MOVETO then the rest LINETO
     @property
     def codes(self):
-        return [Path.MOVETO].extend([Path.LINETO] * self.ticks)
+        return [Path.MOVETO].extend([Path.LINETO] * (self.ticks - 1))
 
     # Generate points in the format of a list of tuples (x.y)
     @property
     def points(self):
-        return numpy.append([list(self.origin)], numpy.column_stack((self.x, self.y)), axis=0)
+        return numpy.column_stack((self.x, self.y))
 
     @property
     def end_point(self):
@@ -95,7 +96,7 @@ class Track:
 
     @property
     def start_point(self):
-        return self.origin
+        return self.x[0], self.y[0]
 
     @property
     def ticks(self):
