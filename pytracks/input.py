@@ -1,11 +1,7 @@
 import numpy
 import os
 import pytracks.tracks
-try:
-    import configparser
-except ImportError:
-    print("Module: configparser not found.")
-
+import pytracks.grid
 
 def read_data(data_file):
     try:
@@ -26,6 +22,7 @@ def split_data(data, split_id):
     id_indexes = [j + 1 for j in numpy.where(ids[:-1] != ids[1:])[0]]
 
     return numpy.split(sorted_data, id_indexes)
+
 
 class TrackWrapper:
     def __init__(self, data_file, extra_ids=None, sectioned=True, id_column=1, x_column=2, y_column=3):

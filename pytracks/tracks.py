@@ -2,11 +2,6 @@ import numpy
 import random
 import math
 from matplotlib.path import Path
-try:
-    import configparser
-except ImportError:
-    print("Module: configparser not found.")
-
 
 class TrackSet:
 
