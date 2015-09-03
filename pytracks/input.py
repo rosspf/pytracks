@@ -1,6 +1,7 @@
 import numpy
 import os
 import pytracks.tracks
+import pytracks.grid
 
 
 # A method to section the data according to an ID specified
@@ -57,7 +58,10 @@ class GridWrapper:
         self.extra_ids = extra_ids
 
     def get_grid(self, id=0):
-        return self.data[0]
-
-    def size(self, id=0):
-        return self.data[id][-1][self.data_ids[0]], self.data[id][-1][self.data_ids[1]]
+        grid_builder = []
+        for cell in self.data[id]:
+            data_extra = None
+            if self.extra_ids is not None:
+                data_extra = [cell[e] for e in self.extra_ids]
+            grid_builder.append(pytracks.grid.Cell(cell[self.data_ids[0]], cell[self.data_ids[1]], data_extra))
+        return pytracks.grid.Grid(grid_builder)

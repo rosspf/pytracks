@@ -4,12 +4,106 @@ import math
 from matplotlib.path import Path
 
 
+class ListWrapper:
+
+    def __init__(self, data_array):
+        self.data_array = data_array
+
+    @property
+    def all(self):
+        return self.data_array
+
+    @property
+    def count(self):
+        return len(self.data_array)
+
+    @property
+    def start(self):
+        return self.data_array[0]
+
+    @property
+    def end(self):
+        return self.data_array[-1]
+
+    @property
+    def sum(self):
+        return numpy.sum(self.data_array)
+
+    @property
+    def range(self):
+        return numpy.ptp(self.data_array)
+
+    @property
+    def min(self):
+        return numpy.min(self.data_array)
+
+    @property
+    def max(self):
+        return numpy.max(self.data_array)
+
+class DistanceWrapper:
+
+    def __init__(self, points):
+        self._points = points
+
+    def __calc_distance(self, p1, p2):
+        return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+
+    @property
+    def distances(self):
+        return ListWrapper([self.__calc_distance(self._points.all[e], self._points.all[e + 1]) for e in range(self._points.count - 1)])
+
+    @property
+    def net(self):
+        return self.__calc_distance(self._points.start, self._points.end)
+
+    @property
+    def total(self):
+        return self.distances.sum
+
+
 class TrackSet:
 
     def __init__(self, tracks=[]):
         self.tracks = tracks
 
-    @property
+    class TrackSetDataWrapper:
+
+        def __init__(self, attribute_list):
+            self._attribute_list = attribute_list
+
+        @property
+        def all(self):
+            return self._attribute_list
+
+        @property
+        def ticks(self):
+            return [ListWrapper(attribute).count for attribute in self._attribute_list]
+
+        @property
+        def start(self):
+            return [ListWrapper(attribute).start for attribute in self._attribute_list]
+
+        @property
+        def end(self):
+            return [ListWrapper(attribute).end for attribute in self._attribute_list]
+
+        @property
+        def sum(self):
+            return [ListWrapper(attribute).sum for attribute in self._attribute_list]
+
+        @property
+        def range(self):
+            return [ListWrapper(attribute).range for attribute in self._attribute_list]
+
+        @property
+        def min(self):
+            return [ListWrapper(attribute).min for attribute in self._attribute_list]
+
+        @property
+        def max(self):
+            return [ListWrapper(attribute).max for attribute in self._attribute_list]
+
     def count(self):
         return len(self.tracks)
 
@@ -45,67 +139,48 @@ class TrackSet:
     def get_tracks_start_point_in_square(self, center, radius):
         return TrackSet([track for track in self.tracks if self.__point_in_area_square(track.end_point, center, radius)])
 
-    def points(self, statistic):
-        return [track.point(statistic) for track in self.tracks]
+    @property
+    def points(self):
+        return self.TrackSetDataWrapper([track.point.all for track in self.tracks])
 
-    def growths(self, statistic):
-        return [track.growth(statistic) for track in self.tracks]
+    @property
+    def growths(self):
+        return self.TrackSetDataWrapper([track.growth.all for track in self.tracks])
 
-    def mortalities(self, statistic):
-        return [track.mortality(statistic) for track in self.tracks]
+    @property
+    def mortalities(self):
+        return self.TrackSetDataWrapper([track.mortality.all for track in self.tracks])
 
-    def habitat_qualities(self, statistic):
-        return [track.habitat_quality(statistic) for track in self.tracks]
+    @property
+    def habitat_qualities(self):
+        return self.TrackSetDataWrapper([track.habitat_quality.all for track in self.tracks])
 
-    def worths(self, statistic):
-        return [track.worth(statistic) for track in self.tracks]
+    @property
+    def worths(self):
+        return self.TrackSetDataWrapper([track.worth.all for track in self.tracks])
 
-    def weights(self, statistic):
-        return [track.weight(statistic) for track in self.tracks]
+    @property
+    def weights(self):
+        return self.TrackSetDataWrapper([track.weight.all for track in self.tracks])
 
-    def biomasses(self, statistic):
-        return [track.biomass(statistic) for track in self.tracks]
+    @property
+    def biomasses(self):
+        return self.TrackSetDataWrapper([track.biomass.all for track in self.tracks])
 
-    def extras(self, id, statistic):
-        return [track.extra(id, statistic) for track in self.tracks]
+    def extras(self, element_id):
+        return self.TrackSetDataWrapper([track.extra(element_id).all for track in self.tracks])
 
 
 # 0 - id, 1 - x, 2 - y, 3 - g, 4 - m, 5 - worth, 6 - weight
 class Track:
 
-    def __init__(self, data, num_extra):
+    def __init__(self, data, extra):
         self._data = data
-        self._extra = []
-        for _ in range(len(num_extra)):
-            self._extra.append(numpy.array([], dtype=float))
+        self._extra = extra
 
-    class DataWrapper:
-
-        def __init__(self, attribute):
-            self.attribute = attribute
-
-        @property
-        def start(self):
-            return self.attribute[0]
-
-        @property
-        def end(self):
-            return self.attribute[-1]
-
-        @property
-        def all(self):
-            return self.attribute
-
-    def _fetch_data(self, attribute, statistic):
-        return {
-            'start': attribute[0],
-            'end': attribute[-1],
-            'all': attribute,
-        }.get(statistic, None)
-
-    @property
-    def ticks(self):
+    def __len__(self):
         return len(self._data[0])
+
 
     # Make the first code MOVETO then the rest LINETO
     @property
@@ -113,36 +188,36 @@ class Track:
         return [Path.MOVETO].extend([Path.LINETO] * (self.ticks - 1))
 
     @property
-    def distances_between_timesteps(self):
-        distances_worker = numpy.array([], dtype=float)
-        for i in range(len(self.points) - 1):
-            distances_worker = numpy.append(distances_worker, [math.hypot(self.points[i + 1][0] - self.points[i][0], self.points[i + 1][1] - self.points[i][1])])
-        return distances_worker
+    def distance(self):
+        return DistanceWrapper(self.point)
 
     @property
-    def total_distance(self):
-        return numpy.sum(self.distances_between_timesteps)
+    def point(self):
+        return ListWrapper(numpy.column_stack((self._data[1], self._data[2])))
 
-    def point(self, statistic):
-        return self._fetch_data(numpy.column_stack((self._data[1], self._data[2])), statistic)
+    @property
+    def growth(self):
+        return ListWrapper(self._data[3])
 
-    def growth(self, statistic):
-        return self._fetch_data(self._data[3], statistic)
+    @property
+    def mortality(self):
+        return ListWrapper(self._data[4])
 
-    def mortality(self, statistic):
-        return self._fetch_data(self._data[4], statistic)
+    @property
+    def habitat_quality(self):
+        return ListWrapper(numpy.subtract(self.growth.all, self.mortality.all))
 
-    def habitat_quality(self, statistic):
-        return self._fetch_data(numpy.subtract(self.growth, self.mortality), statistic)
+    @property
+    def worth(self):
+        return ListWrapper(self._data[5])
 
-    def worth(self, statistic):
-        return self._fetch_data(self._data[5], statistic)
+    @property
+    def weight(self):
+        return ListWrapper(self._data[6])
 
-    def weight(self, statistic):
-        return self._fetch_data(self._data[6], statistic)
+    @property
+    def biomass(self):
+        return ListWrapper(numpy.multiply(self.weight.all, self.worth.all))
 
-    def biomass(self, statistic):
-        return self._fetch_data(numpy.multiply(self.weight, self.worth), statistic)
-
-    def extra(self, id, statistic):
-        return self._fetch_data(self._extra[id], statistic)
+    def extra(self, extra_id):
+        return ListWrapper(self._extra[extra_id])
