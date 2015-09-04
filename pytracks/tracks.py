@@ -27,8 +27,8 @@ class TrackSet:
         else:
             raise TypeError("TrackSet objects can only be added with other TrackSets.")
 
-    def get_ids(self, ids):
-        return TrackSet([self.tracks[id] for id in ids])
+    def get_ids(self, indexes):
+        return TrackSet([self.tracks[index] for index in indexes])
 
     def get_random(self, num=1):
         return TrackSet(random.sample(self.tracks, num))

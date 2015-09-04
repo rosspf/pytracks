@@ -1,7 +1,9 @@
 import math
 
+
 def dummy(p):
     return p
+
 
 def distance(p1, p2):
     return math.hypot(p2[0] - p1[0], p2[1] - p1[1])

@@ -7,10 +7,10 @@ import pytracks.grid
 # A method to section the data according to an ID specified
 def split_data(data, split_id):
     # Sort the incoming data according to the specific column index. Mergesort used to keep original order.
-    sorted_data = data[data[:,split_id].argsort(kind="mergesort")]
+    sorted_data = data[data[:, split_id].argsort(kind="mergesort")]
 
     # Get the column which we are interested in sorting to
-    ids = sorted_data[:,split_id]
+    ids = sorted_data[:, split_id]
 
     # Find where each element is different from it's neighbor and add 1 to get the right splitting point
     id_indexes = [j + 1 for j in numpy.where(ids[:-1] != ids[1:])[0]]
@@ -37,9 +37,9 @@ class TrackWrapper:
         self.extra_ids = extra_ids
 
     # Get trackset of id. If nothing passed get first
-    def get_trackset(self, id=0):
+    def get_trackset(self, index=0):
         new_tracks = []
-        for raw_track in split_data(self.data[id], self.data_ids[0]):
+        for raw_track in split_data(self.data[index], self.data_ids[0]):
             new_track_data = []
             new_track_data_extra = []
             for element in self.data_ids:
@@ -57,9 +57,9 @@ class GridWrapper:
         self.data, self.data_ids = get_data(data_file, sectioned, [x_column, y_column])
         self.extra_ids = extra_ids
 
-    def get_grid(self, id=0):
+    def get_grid(self, index=0):
         grid_builder = []
-        for cell in self.data[id]:
+        for cell in self.data[index]:
             data_extra = None
             if self.extra_ids is not None:
                 data_extra = [cell[e] for e in self.extra_ids]

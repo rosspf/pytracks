@@ -16,6 +16,7 @@ class Grid:
     def size(self):
         return self.cells[-1].point
 
+
 class Cell:
 
     def __init__(self, x, y, data):
