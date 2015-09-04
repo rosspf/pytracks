@@ -1,14 +1,16 @@
 import numpy
 import random
-import math
-from pytracks.datawrappers import TrackSetDataWrapper, ListWrapper, DistanceWrapper
+from pytracks.functions import distance, point_in_area_circle, point_in_area_square, dummy
 from matplotlib.path import Path
 
 
 class TrackSet:
 
-    def __init__(self, tracks=[]):
-        self.tracks = tracks
+    def __init__(self, tracks=None):
+        if tracks is None:
+            self.tracks = []
+        else:
+            self.tracks = tracks
 
     def __len__(self):
         return len(self.tracks)
@@ -21,108 +23,92 @@ class TrackSet:
 
     def __add__(self, other):
         if isinstance(other, TrackSet):
-            return TrackSet(other.tracks.extend(self.tracks))
+            return TrackSet(other.tracks + self.tracks)
         else:
             raise TypeError("TrackSet objects can only be added with other TrackSets.")
 
-    def count(self):
-        return len(self.tracks)
-
-    def get_track_by_id(self, id):
-        return TrackSet([self.tracks[id]])
-
-    def get_tracks_by_ids(self, ids):
+    def get_ids(self, ids):
         return TrackSet([self.tracks[id] for id in ids])
 
-    def get_random_tracks(self, num):
+    def get_random(self, num=1):
         return TrackSet(random.sample(self.tracks, num))
 
-    # Find if value is between two other values (+ and - of radius)
-    def __point_in_area_square(self, point, center, radius):
-        return (range(center[0] - radius <= point[0] <= center[0] + radius)) and (range(center[1] - radius <= point[1] <= center[1] + radius))
-
-    # Compute Euclidean distance to the circle's center and compare to radius. If less return true.
-    def __point_in_area_circle(self, point, center, radius):
-        return radius >= math.hypot(point[0] - center[0], point[1] - center[1])
-
     def get_tracks_end_point_in_circle(self, center, radius):
-        return TrackSet([track for track in self.tracks if self.__point_in_area_circle(track.start_point, center, radius)])
+        return TrackSet([track for track in self.tracks if point_in_area_circle(track.start_point, center, radius)])
 
     # Return a TrackSet of tracks which started in a given area.
     def get_tracks_start_point_in_circle(self, center, radius):
-        return TrackSet([track for track in self.tracks if self.__point_in_area_circle(track.end_point, center, radius)])
+        return TrackSet([track for track in self.tracks if point_in_area_circle(track.end_point, center, radius)])
 
     # Return a TrackSet of tracks which ended in a given area.
     def get_tracks_end_point_in_square(self, center, radius):
-        return TrackSet([track for track in self.tracks if self.__point_in_area_square(track.start_point, center, radius)])
+        return TrackSet([track for track in self.tracks if point_in_area_square(track.start_point, center, radius)])
 
     # Return a TrackSet of tracks which started in a given area.
     def get_tracks_start_point_in_square(self, center, radius):
-        return TrackSet([track for track in self.tracks if self.__point_in_area_square(track.end_point, center, radius)])
+        return TrackSet([track for track in self.tracks if point_in_area_square(track.end_point, center, radius)])
 
-    @property
-    def points(self):
-        return TrackSetDataWrapper([track.point.list for track in self.tracks])
+    def get_points(self, f=dummy):
+        return [f(track.points) for track in self.tracks]
 
-    @property
-    def growths(self):
-        return TrackSetDataWrapper([track.growth.list for track in self.tracks])
+    def get_growths(self, f=dummy):
+        return [f(track.growths) for track in self.tracks]
 
-    @property
-    def mortalities(self):
-        return TrackSetDataWrapper([track.mortality.list for track in self.tracks])
+    def get_mortalities(self, f=dummy):
+        return [f(track.mortalities) for track in self.tracks]
 
-    @property
-    def habitat_qualities(self):
-        return TrackSetDataWrapper([track.habitat_quality.list for track in self.tracks])
+    def get_habitat_qualities(self, f=dummy):
+        return [f(track.habitat_qualities) for track in self.tracks]
 
-    @property
-    def worths(self):
-        return TrackSetDataWrapper([track.worth.list for track in self.tracks])
+    def get_worths(self, f=dummy):
+        return [f(track.worths) for track in self.tracks]
 
-    @property
-    def weights(self):
-        return TrackSetDataWrapper([track.weight.list for track in self.tracks])
+    def get_weights(self, f=dummy):
+        return [f(track.weights) for track in self.tracks]
 
-    @property
-    def biomasses(self):
-        return TrackSetDataWrapper([track.biomass.list for track in self.tracks])
+    def get_biomasses(self, f=dummy):
+        return [f(track.biomasses) for track in self.tracks]
 
-    def extras(self, element_id):
-        return TrackSetDataWrapper([track.extra[element_id].list for track in self.tracks])
+    def get_extras(self, element_id, f=dummy):
+        return [f(track[element_id]) for track in self.tracks]
 
 
 # 0 - id, 1 - x, 2 - y, 3 - g, 4 - m, 5 - worth, 6 - weight
 class Track:
-
     def __init__(self, data, extra):
-        self.data = data
+        self.ids, self.x, self.y, self.growths, self.mortalities, self.worths, self.weights = tuple(data)
         self.extra = extra
 
     def __len__(self):
-        return len(self._data[0])
+        return len(self.ids)
 
-    # Make the first code MOVETO then the rest LINETO
+    def __getitem__(self, item):
+        return self.extra[item]
+
     @property
     def codes(self):
-        return [Path.MOVETO].extend([Path.LINETO] * (self.ticks - 1))
+        return [Path.MOVETO].extend([Path.LINETO] * (len(self) - 1))
 
     @property
-    def distance(self):
-        return DistanceWrapper(self.point)
+    def distances(self):
+        return [distance(self.points[e], self.points[e + 1]) for e in range(len(self) - 1)]
 
     @property
-    def point(self):
-        return ListWrapper(numpy.column_stack((self.x, self.y)))
+    def distance_net(self):
+        return distance(self.points[0], self.points[-1])
 
     @property
-    def habitat_quality(self):
-        return ListWrapper(numpy.subtract(self.growth, self.mortality))
+    def distance_total(self):
+        return numpy.sum(self.distances)
 
     @property
-    def biomass(self):
-        return ListWrapper(numpy.multiply(self.weight, self.worth))
+    def points(self):
+        return numpy.column_stack((self.x, self.y))
 
     @property
-    def id(self):
-        return ListWrapper(self.data[0])
+    def habitat_qualities(self):
+        return numpy.subtract(self.growths, self.mortalities)
+
+    @property
+    def biomasses(self):
+        return numpy.multiply(self.weights, self.worths)
