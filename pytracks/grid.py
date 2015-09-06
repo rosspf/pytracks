@@ -31,7 +31,7 @@ class Cell:
         try:
             return self.data[item]
         except LookupError:
-            print("Extra index not found.")
+            print("Extra element not found.")
 
     @property
     def point(self):
