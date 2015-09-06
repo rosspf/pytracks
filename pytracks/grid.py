@@ -22,13 +22,16 @@ class Cell:
     def __init__(self, x, y, data):
         self.x = x
         self.y = y
-        self.__data = data
+        self.data = data
 
     def __len__(self):
-        return len(self.__data)
+        return len(self.data)
 
     def __getitem__(self, item):
-        return self.__data[item]
+        try:
+            return self.data[item]
+        except LookupError:
+            print("Extra index not found.")
 
     @property
     def point(self):

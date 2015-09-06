@@ -1,7 +1,15 @@
 import numpy
 import random
-from pytracks.functions import distance, point_in_area_circle, point_in_area_square, dummy
+import math
 from matplotlib.path import Path
+
+
+def dummy(p):
+    return p
+
+
+def distance(p1, p2):
+    return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
 
 class TrackSet:
@@ -27,49 +35,64 @@ class TrackSet:
         else:
             raise TypeError("TrackSet objects can only be added with other TrackSets.")
 
-    def get_ids(self, indexes):
+    @staticmethod
+    def point_in_rectangle(point, p1, p2):
+        testpath = Path(numpy.array([[p1[0], p1[1]], [p1[1], p2[0]], [p2[0], p2[1]], [p2[1], p1[0]]]))
+        return testpath.contains_point(point)
+
+    @staticmethod
+    def point_in_circle(point, center, radius):
+        return radius >= math.hypot(point[0] - center[0], point[1] - center[1])
+
+    def get_tracks_ids(self, indexes):
         return TrackSet([self.tracks[index] for index in indexes])
 
-    def get_random(self, num=1):
+    def get_tracks_random(self, num=1):
         return TrackSet(random.sample(self.tracks, num))
 
-    def get_tracks_end_point_in_circle(self, center, radius):
-        return TrackSet([track for track in self.tracks if point_in_area_circle(track.start_point, center, radius)])
+    def get_tracks_circle(self, center, radius, index=(-1)):
+        return TrackSet([track for track in self.tracks if self.point_in_circle(track.points[index], center, radius)])
 
-    # Return a TrackSet of tracks which started in a given area.
-    def get_tracks_start_point_in_circle(self, center, radius):
-        return TrackSet([track for track in self.tracks if point_in_area_circle(track.end_point, center, radius)])
+    def get_tracks_rectangle(self, p1, p2, index=(-1)):
+        return TrackSet([track for track in self.tracks if self.point_in_rectangle(track.points[index], p1, p2)])
 
-    # Return a TrackSet of tracks which ended in a given area.
-    def get_tracks_end_point_in_square(self, center, radius):
-        return TrackSet([track for track in self.tracks if point_in_area_square(track.start_point, center, radius)])
+    def get_tracks_mortality(self, min_mortality=0, max_mortality=1, index=(-1)):
+        return TrackSet([track for track in self.tracks if min_mortality <= track.mortalities[index] <= max_mortality])
 
-    # Return a TrackSet of tracks which started in a given area.
-    def get_tracks_start_point_in_square(self, center, radius):
-        return TrackSet([track for track in self.tracks if point_in_area_square(track.end_point, center, radius)])
+    def get_tracks_growth(self, min_growth=0, max_growth=1, index=(-1)):
+        return TrackSet([track for track in self.tracks if min_growth <= track.growths[index] <= max_growth])
 
-    def get_points(self, f=dummy):
+    def get_tracks_growth_mortality(self, min_growth=0, max_growth=1, min_mortality=0, max_mortality=1, index=(-1)):
+        return set(self.get_tracks_growth(min_growth, max_growth, index)) & set(self.get_tracks_mortality(min_mortality, max_mortality, index))
+
+    def get_tracks_habitat_quality(self, min_quality=(-1), max_quality=1, index=(-1)):
+        return TrackSet([track for track in self.tracks if min_quality <= track.habitat_qualities[index] <= max_quality])
+
+    def get_tracks_biomass(self, min_biomass, max_biomass, index=(-1)):
+        return TrackSet([track for track in self.tracks if min_biomass <= track.habitat_qualities[index] <= max_biomass])
+
+    def points(self, f=dummy):
         return [f(track.points) for track in self.tracks]
 
-    def get_growths(self, f=dummy):
+    def growths(self, f=dummy):
         return [f(track.growths) for track in self.tracks]
 
-    def get_mortalities(self, f=dummy):
+    def mortalities(self, f=dummy):
         return [f(track.mortalities) for track in self.tracks]
 
-    def get_habitat_qualities(self, f=dummy):
+    def habitat_qualities(self, f=dummy):
         return [f(track.habitat_qualities) for track in self.tracks]
 
-    def get_worths(self, f=dummy):
+    def worths(self, f=dummy):
         return [f(track.worths) for track in self.tracks]
 
-    def get_weights(self, f=dummy):
+    def weights(self, f=dummy):
         return [f(track.weights) for track in self.tracks]
 
-    def get_biomasses(self, f=dummy):
+    def biomasses(self, f=dummy):
         return [f(track.biomasses) for track in self.tracks]
 
-    def get_extras(self, element_id, f=dummy):
+    def extras(self, element_id, f=dummy):
         return [f(track[element_id]) for track in self.tracks]
 
 
