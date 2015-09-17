@@ -26,8 +26,7 @@ def get_data(data_file, sectioned, ids):
     if sectioned:
         return split_data(raw_input, 0), ids
     else:
-        # Subtract 1 from each id to compensate for no section id
-        return [raw_input], [v - 1 for v in ids]
+        return [raw_input], ids
 
 
 class TrackWrapper:
@@ -37,7 +36,7 @@ class TrackWrapper:
         self.extra_ids = extra_ids
 
     # Get trackset of id. If nothing passed get first
-    def get_trackset(self, index=0):
+    def gen_trackset(self, index=0):
         new_tracks = []
         for raw_track in split_data(self.data[index], self.data_ids[0]):
             new_track_data = []
@@ -57,7 +56,7 @@ class GridWrapper:
         self.data, self.data_ids = get_data(data_file, sectioned, [x_column, y_column])
         self.extra_ids = extra_ids
 
-    def get_grid(self, index=0):
+    def gen_grid(self, index=0):
         grid_builder = []
         for cell in self.data[index]:
             data_extra = None

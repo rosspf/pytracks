@@ -37,13 +37,37 @@ class TrackSet:
     def append(self, other):
         return self + other
 
+    def points(self, f=dummy):
+        return [f(track.points) for track in self.tracks]
+
+    def growths(self, f=dummy):
+        return [f(track.growths) for track in self.tracks]
+
+    def mortalities(self, f=dummy):
+        return [f(track.mortalities) for track in self.tracks]
+
+    def habitat_qualities(self, f=dummy):
+        return [f(track.habitat_qualities) for track in self.tracks]
+
+    def worths(self, f=dummy):
+        return [f(track.worths) for track in self.tracks]
+
+    def weights(self, f=dummy):
+        return [f(track.weights) for track in self.tracks]
+
+    def biomasses(self, f=dummy):
+        return [f(track.biomasses) for track in self.tracks]
+
+    def extras(self, element_id, f=dummy):
+        return [f(track[element_id]) for track in self.tracks]
+
     @staticmethod
-    def point_in_rectangle(point, p1, p2):
+    def _point_in_rectangle(point, p1, p2):
         testpath = Path(numpy.array([[p1[0], p1[1]], [p1[1], p2[0]], [p2[0], p2[1]], [p2[1], p1[0]]]))
         return testpath.contains_point(point)
 
     @staticmethod
-    def point_in_circle(point, center, radius):
+    def _point_in_circle(point, center, radius):
         return radius >= math.hypot(point[0] - center[0], point[1] - center[1])
 
     def get_tracks_ids(self, indexes):
@@ -56,10 +80,10 @@ class TrackSet:
             raise ValueError("Desired tracks not between 1 and population size.")
 
     def get_tracks_circle(self, center, radius, index=(-1)):
-        return TrackSet([track for track in self.tracks if self.point_in_circle(track.points[index], center, radius)])
+        return TrackSet([track for track in self.tracks if self._point_in_circle(track.points[index], center, radius)])
 
     def get_tracks_rectangle(self, p1, p2, index=(-1)):
-        return TrackSet([track for track in self.tracks if self.point_in_rectangle(track.points[index], p1, p2)])
+        return TrackSet([track for track in self.tracks if self._point_in_rectangle(track.points[index], p1, p2)])
 
     def get_tracks_mortality(self, min_mortality=0, max_mortality=1, index=(-1)):
         if min_mortality <= max_mortality:
@@ -88,30 +112,6 @@ class TrackSet:
         else:
             raise ValueError("Minimum biomass can not be greater than maximum biomass.")
 
-    def points(self, f=dummy):
-        return [f(track.points) for track in self.tracks]
-
-    def growths(self, f=dummy):
-        return [f(track.growths) for track in self.tracks]
-
-    def mortalities(self, f=dummy):
-        return [f(track.mortalities) for track in self.tracks]
-
-    def habitat_qualities(self, f=dummy):
-        return [f(track.habitat_qualities) for track in self.tracks]
-
-    def worths(self, f=dummy):
-        return [f(track.worths) for track in self.tracks]
-
-    def weights(self, f=dummy):
-        return [f(track.weights) for track in self.tracks]
-
-    def biomasses(self, f=dummy):
-        return [f(track.biomasses) for track in self.tracks]
-
-    def extras(self, element_id, f=dummy):
-        return [f(track[element_id]) for track in self.tracks]
-
 
 # 0 - id, 1 - x, 2 - y, 3 - g, 4 - m, 5 - worth, 6 - weight
 class Track:
@@ -127,10 +127,6 @@ class Track:
 
     def __getitem__(self, item):
         return self.extra[item]
-
-    @staticmethod
-    def distance(p1, p2):
-        return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
     @property
     def distances(self):
@@ -167,3 +163,7 @@ class Track:
             return ticks[0]
         else:
             return len(self)
+
+    @staticmethod
+    def distance(p1, p2):
+        return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
