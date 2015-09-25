@@ -4,8 +4,16 @@ import math
 from matplotlib.path import Path
 
 
-def dummy(p):
-    return p
+def dummy(o):
+    return o
+
+
+def first(l):
+    return l[0]
+
+
+def last(l):
+    return l[-1]
 
 
 class TrackSet:
@@ -154,7 +162,7 @@ class Track:
 
     @property
     def survived(self):
-        return self.SURVIVAL_THRESHOLD > self.worths[-1]
+        return self.SURVIVAL_THRESHOLD < self.worths[-1]
 
     @property
     def lifetime(self):

@@ -18,21 +18,22 @@ def split_data(data, split_id):
     return numpy.split(sorted_data, id_indexes)
 
 
-def get_data(data_file, sectioned, ids):
+def get_data(data_file, sectioned):
     try:
         raw_input = numpy.loadtxt(os.path.abspath(data_file))
     except (IOError, FileNotFoundError):
         raise
     if sectioned:
-        return split_data(raw_input, 0), ids
+        return split_data(raw_input, 0)
     else:
-        return [raw_input], ids
+        return [raw_input]
 
 
 class TrackWrapper:
 
     def __init__(self, data_file, sectioned=True, id_column=1, x_column=2, y_column=3, g_column=4, m_column=5, worth_column=6, weight_column=7, extra_ids=None):
-        self.data, self.data_ids = get_data(data_file, sectioned, [id_column, x_column, y_column, g_column, m_column, worth_column, weight_column])
+        self.data = get_data(data_file, sectioned)
+        self.data_ids = [id_column, x_column, y_column, g_column, m_column, worth_column, weight_column]
         self.extra_ids = extra_ids
 
     # Get trackset of id. If nothing passed get first
@@ -53,7 +54,8 @@ class TrackWrapper:
 class GridWrapper:
 
     def __init__(self, data_file, sectioned=True, x_column=1, y_column=2, extra_ids=None):
-        self.data, self.data_ids = get_data(data_file, sectioned, [x_column, y_column])
+        self.data = get_data(data_file, sectioned)
+        self.data_ids = [x_column, y_column]
         self.extra_ids = extra_ids
 
     def gen_grid(self, index=0):
