@@ -1,2 +1,11 @@
 pytracks/__pycache__/
-test_suite
+.idea
+doc/_build
+doc/_static
+doc/_templates
+test/event_25
+test/event_100
+test/event_ocean
+test/HMRC_25
+test/HMRC_100
+test/export
